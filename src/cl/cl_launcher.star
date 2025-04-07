@@ -22,6 +22,7 @@ def launch(
     keymanager_file,
     args_with_right_defaults,
     all_el_contexts,
+    all_el_proxy_contexts,
     global_node_selectors,
     global_tolerations,
     persistent,
@@ -126,6 +127,7 @@ def launch(
             ]
 
         el_context = all_el_contexts[index]
+        el_proxy_context = all_el_proxy_contexts[index] if index < len(all_el_proxy_contexts) else None
 
         cl_context = None
         snooper_engine_context = None
@@ -171,6 +173,7 @@ def launch(
                 args_with_right_defaults.global_log_level,
                 cl_context_BOOTNODE,
                 el_context,
+                el_proxy_context,
                 full_name,
                 new_cl_node_validator_keystores,
                 snooper_engine_context,
@@ -192,6 +195,7 @@ def launch(
                 args_with_right_defaults.global_log_level,
                 boot_cl_client_ctx,
                 el_context,
+                el_proxy_context,
                 full_name,
                 new_cl_node_validator_keystores,
                 snooper_engine_context,

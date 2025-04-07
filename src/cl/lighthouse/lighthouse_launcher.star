@@ -46,6 +46,7 @@ def launch(
     global_log_level,
     bootnode_contexts,
     el_context,
+    el_proxy_context,
     full_name,
     node_keystore_files,
     snooper_engine_context,
@@ -69,6 +70,7 @@ def launch(
         log_level,
         bootnode_contexts,
         el_context,
+        el_proxy_context,
         full_name,
         node_keystore_files,
         snooper_engine_context,
@@ -159,6 +161,7 @@ def get_beacon_config(
     log_level,
     bootnode_contexts,
     el_context,
+    el_proxy_context,
     full_name,
     node_keystore_files,
     snooper_engine_context,
@@ -170,11 +173,16 @@ def get_beacon_config(
     port_publisher,
     participant_index,
 ):
-    # If snooper is enabled use the snooper engine context, otherwise use the execution client context
+    # If snooper is enabled use the snooper engine context, otherwise use the execution client context or el_proxy_context if available
     if participant.snooper_enabled:
         EXECUTION_ENGINE_ENDPOINT = "http://{0}:{1}".format(
             snooper_engine_context.ip_addr,
             snooper_engine_context.engine_rpc_port_num,
+        )
+    elif el_proxy_context:
+        EXECUTION_ENGINE_ENDPOINT = "http://{0}:{1}".format(
+            el_proxy_context.ip_addr,
+            el_proxy_context.proxy_port_num,
         )
     else:
         EXECUTION_ENGINE_ENDPOINT = "http://{0}:{1}".format(

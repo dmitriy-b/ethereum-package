@@ -11,6 +11,7 @@ def new_participant(
     snooper_beacon_context,
     ethereum_metrics_exporter_context,
     xatu_sentry_context,
+    el_proxy_context,
 ):
     return struct(
         el_type=el_type,
@@ -25,4 +26,5 @@ def new_participant(
         snooper_beacon_context=snooper_beacon_context,
         ethereum_metrics_exporter_context=ethereum_metrics_exporter_context,
         xatu_sentry_context=xatu_sentry_context,
+        el_proxy_context=el_proxy_context,
     )

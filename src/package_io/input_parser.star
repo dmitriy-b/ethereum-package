@@ -297,6 +297,7 @@ def input_parser(plan, input_args):
                 blobber_enabled=participant["blobber_enabled"],
                 blobber_extra_params=participant["blobber_extra_params"],
                 keymanager_enabled=participant["keymanager_enabled"],
+                el_proxy_enabled=participant.get("el_proxy_enabled", False),
             )
             for participant in result["participants"]
         ],
@@ -527,6 +528,7 @@ def parse_network_params(plan, input_args):
 
     # Ensure we handle matrix participants before standard participants are handled.
     if "participants_matrix" in input_args:
+        participants_matrix = []
         participants = []
 
         el_matrix = []
@@ -692,6 +694,10 @@ def parse_network_params(plan, input_args):
         snooper_enabled = participant["snooper_enabled"]
         if snooper_enabled == None:
             participant["snooper_enabled"] = result["snooper_enabled"]
+
+        el_proxy_enabled = participant["el_proxy_enabled"]
+        if el_proxy_enabled == None:
+            participant["el_proxy_enabled"] = result["el_proxy_enabled"]
 
         keymanager_enabled = participant["keymanager_enabled"]
         if keymanager_enabled == None:
@@ -882,6 +888,7 @@ def default_input_args(input_args):
         "wait_for_finalization": False,
         "global_log_level": "info",
         "snooper_enabled": False,
+        "el_proxy_enabled": False,
         "ethereum_metrics_exporter_enabled": False,
         "parallel_keystore_generation": False,
         "disable_peer_scoring": False,
@@ -1047,6 +1054,7 @@ def default_participant():
         "tolerations": [],
         "count": 1,
         "snooper_enabled": None,
+        "el_proxy_enabled": None,
         "ethereum_metrics_exporter_enabled": None,
         "xatu_sentry_enabled": None,
         "prometheus_config": {

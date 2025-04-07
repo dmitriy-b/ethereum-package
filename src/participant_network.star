@@ -26,6 +26,7 @@ vc = import_module("./vc/vc_launcher.star")
 remote_signer = import_module("./remote_signer/remote_signer_launcher.star")
 
 beacon_snooper = import_module("./snooper/snooper_beacon_launcher.star")
+el_proxy = import_module("./el-proxy/el_proxy_launcher.star")
 
 
 def launch_participant_network(
@@ -41,6 +42,9 @@ def launch_participant_network(
     keymanager_enabled,
     parallel_keystore_generation,
 ):
+    # Debug print to examine args_with_right_defaults
+    plan.print("args_with_right_defaults attributes: {0}".format(dir(args_with_right_defaults)))
+    
     network_id = network_params.network_id
     latest_block = ""
     num_participants = len(args_with_right_defaults.participants)
@@ -149,6 +153,57 @@ def launch_participant_network(
         args_with_right_defaults.mev_params,
     )
 
+    # Launch all el-proxy services if enabled
+    all_el_proxy_contexts = []
+    for index, participant in enumerate(args_with_right_defaults.participants):
+        el_type = participant.el_type
+        index_str = shared_utils.zfill_custom(
+            index + 1, len(str(len(args_with_right_defaults.participants)))
+        )
+        el_context = all_el_contexts[index] if index < len(all_el_contexts) else None
+        
+        # Debug print for el_proxy_enabled
+        plan.print("Checking el_proxy_enabled for participant #{0}:".format(index_str))
+        
+        # Default to False
+        participant_el_proxy_enabled = False
+        
+        # Try to access attribute directly - NOTE: hasattr() doesn't work correctly on struct objects
+        # We need to use dir() and check if the attribute is in the returned list
+        participant_attrs = dir(participant)
+        if "el_proxy_enabled" in participant_attrs:
+            value = participant.el_proxy_enabled
+            plan.print("  - Participant has explicit el_proxy_enabled: {0}".format(value))
+            # Only set to True if explicitly True
+            if value == True:
+                participant_el_proxy_enabled = True
+        
+        plan.print("  - Final el_proxy_enabled: {0}".format(participant_el_proxy_enabled))
+        
+        el_proxy_context = None
+        
+        if participant_el_proxy_enabled and el_context:
+            node_selectors = input_parser.get_client_node_selectors(
+                participant.node_selectors,
+                global_node_selectors,
+            )
+            
+            el_proxy_service_name = "el-proxy-{0}-{1}".format(
+                index_str,
+                el_type
+            )
+            el_proxy_context = el_proxy.launch(
+                plan,
+                el_proxy_service_name,
+                el_context,
+                node_selectors,
+                args_with_right_defaults.docker_cache_params,
+            )
+            plan.print(
+                "Successfully added el-proxy for participant #{0}".format(index_str)
+            )
+        all_el_proxy_contexts.append(el_proxy_context)
+
     # Launch all consensus layer clients
     prysm_password_relative_filepath = (
         validator_data.prysm_password_relative_filepath
@@ -173,6 +228,7 @@ def launch_participant_network(
         keymanager_file,
         args_with_right_defaults,
         all_el_contexts,
+        all_el_proxy_contexts,  # Pass the el_proxy_contexts to cl_client_launcher
         global_node_selectors,
         global_tolerations,
         persistent,
@@ -211,10 +267,14 @@ def launch_participant_network(
         el_context = all_el_contexts[index] if index < len(all_el_contexts) else None
         cl_context = all_cl_contexts[index] if index < len(all_cl_contexts) else None
 
+        # Debug print to see participant structure
+        plan.print("Participant keys: {0}".format(dir(participant)))
+
         node_selectors = input_parser.get_client_node_selectors(
             participant.node_selectors,
             global_node_selectors,
         )
+
         if participant.ethereum_metrics_exporter_enabled:
             pair_name = "{0}-{1}-{2}".format(index_str, cl_type, el_type)
 
@@ -410,6 +470,20 @@ def launch_participant_network(
             snooper_engine_context = all_snooper_engine_contexts[index]
             snooper_beacon_context = all_snooper_beacon_contexts[index]
 
+        el_proxy_context = None
+        
+        # Default to False
+        participant_el_proxy_enabled = False
+        
+        # Try to access attribute directly
+        if hasattr(participant, "el_proxy_enabled"):
+            # Only set to True if explicitly True
+            if participant.el_proxy_enabled == True:
+                participant_el_proxy_enabled = True
+        
+        if participant_el_proxy_enabled:
+            el_proxy_context = all_el_proxy_contexts[index]
+
         ethereum_metrics_exporter_context = None
 
         if participant.ethereum_metrics_exporter_enabled:
@@ -434,6 +508,7 @@ def launch_participant_network(
             snooper_beacon_context,
             ethereum_metrics_exporter_context,
             xatu_sentry_context,
+            el_proxy_context,
         )
 
         all_participants.append(participant_entry)
