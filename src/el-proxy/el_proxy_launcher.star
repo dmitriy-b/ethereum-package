@@ -53,7 +53,7 @@ def get_config(service_name, el_context, node_selectors, docker_cache_params):
         "--ec-endpoint={0}".format(ec_endpoint),
         "--port={0}".format(EL_PROXY_PORT_NUM),
         "--validate-all-blocks",
-        "--log-level=Debug"  # Log level
+        "--log-level=Info"  # Log level
     ]
 
     # Use either a custom image from cache or default image
