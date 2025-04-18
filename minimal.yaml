@@ -1,0 +1,19 @@
+participants:
+  - el_type: nethermind
+    cl_type: lighthouse
+    snooper_enabled: false
+    # el_proxy_enabled: true
+  - el_type: nethermind
+    cl_type: lighthouse
+    validator_count: 0
+    use_separate_vc: true
+    snooper_enabled: false
+    el_proxy_enabled: false
+
+# Global settings - default for participants without explicit el_proxy_enabled
+snooper_enabled: false
+el_proxy_enabled: false
+network_params:
+  preset: minimal
+  network: kurtosis
+
