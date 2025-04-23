@@ -148,6 +148,7 @@ def get_config(
         "--Metrics.Enabled=true",
         "--Metrics.ExposePort={0}".format(METRICS_PORT_NUM),
         "--Metrics.ExposeHost=0.0.0.0",
+        "--Sync.AncientReceiptsBarrier=0",
     ]
 
     if constants.NETWORK_NAME.shadowfork in launcher.network:
