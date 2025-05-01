@@ -33,6 +33,7 @@ def launch(
     global_log_level,
     bootnode_contexts,
     el_context,
+    el_proxy_context,
     full_name,
     node_keystore_files,
     snooper_engine_context,
@@ -57,6 +58,7 @@ def launch(
         log_level,
         bootnode_contexts,
         el_context,
+        el_proxy_context,
         full_name,
         node_keystore_files,
         snooper_engine_context,
@@ -151,6 +153,7 @@ def get_beacon_config(
     log_level,
     bootnode_contexts,
     el_context,
+    el_proxy_context,
     full_name,
     node_keystore_files,
     snooper_engine_context,
@@ -172,6 +175,11 @@ def get_beacon_config(
         EXECUTION_ENGINE_ENDPOINT = "http://{0}:{1}".format(
             snooper_engine_context.ip_addr,
             snooper_engine_context.engine_rpc_port_num,
+        )
+    elif el_proxy_context:
+        EXECUTION_ENGINE_ENDPOINT = "http://{0}:{1}".format(
+            el_proxy_context.ip_addr,
+            el_proxy_context.proxy_port_num,
         )
     else:
         EXECUTION_ENGINE_ENDPOINT = "http://{0}:{1}".format(
