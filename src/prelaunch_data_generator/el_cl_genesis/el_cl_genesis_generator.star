@@ -84,26 +84,25 @@ def generate_el_cl_genesis_data(
         files={"/data": genesis.files_artifacts[1]},
         wait=None,
     )
-
-    prague_time = plan.run_sh(
-        name="read-prague-time",
-        description="Reading prague time from genesis",
-        run="jq .config.pragueTime /data/genesis.json | tr -d '\n'",
-        files={"/data": genesis.files_artifacts[0]},
-    )
-
     osaka_time = plan.run_sh(
         name="read-osaka-time",
         description="Reading osaka time from genesis",
-        run="jq .config.osakaTime /data/genesis.json | tr -d '\n'",
+        run="jq '.config.osakaTime' /data/genesis.json | tr -d '\n'",
+        files={"/data": genesis.files_artifacts[0]},
+    )
+
+    osaka_enabled_check = plan.run_sh(
+        name="check-osaka-enabled",
+        description="Check if osaka time is enabled (not false)",
+        run="test \"$(jq '.config.osakaTime // false' /data/genesis.json | tr -d '\n')\" != \"false\" && echo true || echo false",
         files={"/data": genesis.files_artifacts[0]},
     )
 
     result = el_cl_genesis_data.new_el_cl_genesis_data(
         genesis.files_artifacts[0],
         genesis_validators_root.output,
-        prague_time.output,
         osaka_time.output,
+        osaka_enabled_check.output == "true",
     )
 
     return result
@@ -185,6 +184,7 @@ def new_env_file_for_el_cl_genesis_data(
         "WithdrawalType": "{0}".format(network_params.withdrawal_type),
         "WithdrawalAddress": network_params.withdrawal_address,
         "ValidatorBalance": int(network_params.validator_balance * 1000000000),
+        "MinEpochsForDataColumnSidecarsRequests": network_params.min_epochs_for_data_column_sidecars_requests,
     }
 
 

@@ -6,6 +6,7 @@ PARTICIPANT_CATEGORIES = {
         "el_extra_env_vars",
         "el_extra_labels",
         "el_extra_params",
+        "el_extra_mounts",
         "el_tolerations",
         "el_volume_size",
         "el_min_cpu",
@@ -18,6 +19,7 @@ PARTICIPANT_CATEGORIES = {
         "cl_extra_env_vars",
         "cl_extra_labels",
         "cl_extra_params",
+        "cl_extra_mounts",
         "cl_tolerations",
         "cl_volume_size",
         "cl_min_cpu",
@@ -32,6 +34,7 @@ PARTICIPANT_CATEGORIES = {
         "vc_extra_env_vars",
         "vc_extra_labels",
         "vc_extra_params",
+        "vc_extra_mounts",
         "vc_tolerations",
         "vc_min_cpu",
         "vc_max_cpu",
@@ -58,6 +61,7 @@ PARTICIPANT_CATEGORIES = {
         "prometheus_config",
         "blobber_enabled",
         "blobber_extra_params",
+        "blobber_image",
         "builder_network_params",
         "keymanager_enabled",
     ],
@@ -72,6 +76,7 @@ PARTICIPANT_MATRIX_PARAMS = {
             "el_extra_env_vars",
             "el_extra_labels",
             "el_extra_params",
+            "el_extra_mounts",
             "el_tolerations",
             "el_volume_size",
             "el_min_cpu",
@@ -86,6 +91,7 @@ PARTICIPANT_MATRIX_PARAMS = {
             "cl_extra_env_vars",
             "cl_extra_labels",
             "cl_extra_params",
+            "cl_extra_mounts",
             "cl_tolerations",
             "cl_volume_size",
             "cl_min_cpu",
@@ -99,6 +105,7 @@ PARTICIPANT_MATRIX_PARAMS = {
             "vc_extra_env_vars",
             "vc_extra_labels",
             "vc_extra_params",
+            "vc_extra_mounts",
             "vc_tolerations",
             "vc_min_cpu",
             "vc_max_cpu",
@@ -115,6 +122,7 @@ PARTICIPANT_MATRIX_PARAMS = {
             "vc_extra_env_vars",
             "vc_extra_labels",
             "vc_extra_params",
+            "vc_extra_mounts",
             "vc_tolerations",
             "vc_min_cpu",
             "vc_max_cpu",
@@ -133,6 +141,46 @@ PARTICIPANT_MATRIX_PARAMS = {
             "remote_signer_max_cpu",
             "remote_signer_min_mem",
             "remote_signer_max_mem",
+        ],
+    },
+}
+
+PORT_PUBLISHER_PARAMS = {
+    "port_publisher": {
+        "el": [
+            "enabled",
+            "public_port_start",
+            "nat_exit_ip",
+        ],
+        "cl": [
+            "enabled",
+            "public_port_start",
+            "nat_exit_ip",
+        ],
+        "vc": [
+            "enabled",
+            "public_port_start",
+            "nat_exit_ip",
+        ],
+        "remote_signer": [
+            "enabled",
+            "public_port_start",
+            "nat_exit_ip",
+        ],
+        "additional_services": [
+            "enabled",
+            "public_port_start",
+            "nat_exit_ip",
+        ],
+        "mev": [
+            "enabled",
+            "public_port_start",
+            "nat_exit_ip",
+        ],
+        "other": [
+            "enabled",
+            "public_port_start",
+            "nat_exit_ip",
         ],
     },
 }
@@ -201,6 +249,7 @@ SUBCATEGORY_PARAMS = {
         "withdrawal_type",
         "withdrawal_address",
         "validator_balance",
+        "min_epochs_for_data_column_sidecars_requests",
     ],
     "blockscout_params": [
         "image",
@@ -264,11 +313,9 @@ SUBCATEGORY_PARAMS = {
         "mev_relay_website_extra_env_vars",
         "mev_builder_extra_args",
         "mev_builder_prometheus_config",
-        "mev_flood_image",
-        "mev_flood_extra_args",
-        "mev_flood_seconds_per_bundle",
         "custom_flood_params",
         "mock_mev_image",
+        "launch_adminer",
     ],
     "xatu_sentry_params": [
         "xatu_sentry_image",
@@ -289,16 +336,6 @@ SUBCATEGORY_PARAMS = {
     "ethereum_genesis_generator_params": [
         "image",
     ],
-    "port_publisher": [
-        "nat_exit_ip",
-        "el",
-        "cl",
-        "vc",
-        "remote_signer",
-        "additional_services",
-        "mev",
-        "other",
-    ],
 }
 
 ADDITIONAL_SERVICES_PARAMS = [
@@ -318,6 +355,7 @@ ADDITIONAL_SERVICES_PARAMS = [
     "blutgang",
     "forky",
     "apache",
+    "nginx",
     "tracoor",
     "spamoor",
 ]
@@ -333,6 +371,7 @@ ADDITIONAL_CATEGORY_PARAMS = {
     "mev_type": "",
     "xatu_sentry_enabled": "",
     "apache_port": "",
+    "nginx_port": "",
     "global_tolerations": "",
     "global_node_selectors": "",
     "keymanager_enabled": "",
@@ -364,12 +403,41 @@ def validate_params(plan, input_args, category, allowed_params):
                 )
 
 
+def validate_nested_params(
+    plan, input_args, category, nested_param_definition, special_keys=None
+):
+    if category not in input_args:
+        return
+
+    special_keys = special_keys or []
+    allowed_top_level_keys = list(nested_param_definition.keys()) + special_keys
+
+    # Validate top-level keys
+    for param in input_args[category].keys():
+        if param not in allowed_top_level_keys:
+            fail(
+                "Invalid parameter {0} for {1}, allowed fields: {2}".format(
+                    param, category, allowed_top_level_keys
+                )
+            )
+
+    # Validate nested parameters
+    for sub_param in input_args[category]:
+        if sub_param not in special_keys and sub_param in nested_param_definition:
+            validate_params(
+                plan,
+                input_args[category],
+                sub_param,
+                nested_param_definition[sub_param],
+            )
+
+
 def sanity_check(plan, input_args):
     # Checks participants
     deep_validate_params(
         plan, input_args, "participants", PARTICIPANT_CATEGORIES["participants"]
     )
-    # Checks participants_matrix
+    # Checks participants_matrix (uses original logic for arrays of objects)
     if "participants_matrix" in input_args:
         for sub_matrix_participant in input_args["participants_matrix"]:
             if (
@@ -392,6 +460,15 @@ def sanity_check(plan, input_args):
                     ],
                 )
 
+    # Checks port_publisher (uses new generic validation for key-value mappings)
+    validate_nested_params(
+        plan,
+        input_args,
+        "port_publisher",
+        PORT_PUBLISHER_PARAMS["port_publisher"],
+        ["nat_exit_ip"],
+    )
+
     # Checks additional services
     if "additional_services" in input_args:
         for additional_services in input_args["additional_services"]:
@@ -412,10 +489,12 @@ def sanity_check(plan, input_args):
         combined_root_params = (
             PARTICIPANT_CATEGORIES.keys()
             + PARTICIPANT_MATRIX_PARAMS.keys()
+            + PORT_PUBLISHER_PARAMS.keys()
             + SUBCATEGORY_PARAMS.keys()
             + ADDITIONAL_CATEGORY_PARAMS.keys()
         )
         combined_root_params.append("additional_services")
+        combined_root_params.append("extra_files")
 
         if param not in combined_root_params:
             fail(
