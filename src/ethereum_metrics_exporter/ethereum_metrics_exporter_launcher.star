@@ -34,7 +34,7 @@ def launch(
     docker_cache_params,
     persistent,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
     public_ports = shared_utils.get_other_public_port(
         port_publisher,
         HTTP_PORT_ID,
@@ -51,7 +51,7 @@ def launch(
         ),
         "--execution-url",
         "http://{}:{}".format(
-            el_context.ip_addr,
+            el_context.dns_name,
             el_context.rpc_port_num,
         ),
     ]
@@ -98,7 +98,7 @@ def launch(
 
     return ethereum_metrics_exporter_context.new_ethereum_metrics_exporter_context(
         pair_name,
-        exporter_service.ip_address,
+        exporter_service.name,
         METRICS_PORT_NUMBER,
         cl_context.client_name,
         el_context.client_name,

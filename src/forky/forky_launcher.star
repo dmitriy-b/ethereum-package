@@ -42,7 +42,7 @@ def launch_forky(
     additional_service_index,
     docker_cache_params,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
 
     all_cl_client_info = []
     all_el_client_info = []
@@ -59,7 +59,7 @@ def launch_forky(
         all_el_client_info.append(
             new_el_client_info(
                 "http://{0}:{1}".format(
-                    el_client.ip_addr,
+                    el_client.dns_name,
                     el_client.rpc_port_num,
                 ),
                 full_name,

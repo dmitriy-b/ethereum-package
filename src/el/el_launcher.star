@@ -31,6 +31,7 @@ def launch(
     mev_builder_type,
     mev_params,
     extra_files_artifacts={},
+    bootnodoor_enode=None,
 ):
     el_launchers = {
         constants.EL_TYPE.geth: {
@@ -125,6 +126,14 @@ def launch(
     el_service_configs = {}
     el_participant_info = {}
 
+    # Generic bootnode ENODE override - can be set from bootnodoor or any other bootnode service
+    if bootnodoor_enode != None:
+        plan.print(
+            "Using bootnode ENODE override for all EL clients: {0}".format(
+                bootnodoor_enode
+            )
+        )
+
     for index, participant in enumerate(participants):
         cl_type = participant.cl_type
         el_type = participant.el_type
@@ -132,8 +141,10 @@ def launch(
             participant.node_selectors,
             global_node_selectors,
         )
-        tolerations = input_parser.get_client_tolerations(
-            participant.el_tolerations, participant.tolerations, global_tolerations
+        tolerations = shared_utils.get_tolerations(
+            specific_container_tolerations=participant.el_tolerations,
+            participant_tolerations=participant.tolerations,
+            global_tolerations=global_tolerations,
         )
 
         if el_type not in el_launchers:
@@ -169,6 +180,7 @@ def launch(
                 index,
                 network_params,
                 extra_files_artifacts,
+                bootnodoor_enode,
             )
 
             # Add participant el additional prometheus metrics
@@ -193,6 +205,7 @@ def launch(
                 index,
                 network_params,
                 extra_files_artifacts,
+                bootnodoor_enode,
             )
 
             el_participant_info[el_service_name] = {

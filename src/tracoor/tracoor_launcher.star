@@ -40,7 +40,7 @@ def launch_tracoor(
     additional_service_index,
     docker_cache_params,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
 
     all_client_info = []
     for index, participant in enumerate(participant_contexts):
@@ -51,7 +51,7 @@ def launch_tracoor(
         beacon = new_cl_client_info(cl_client.beacon_http_url, full_name)
         execution = new_el_client_info(
             "http://{0}:{1}".format(
-                el_client.ip_addr,
+                el_client.dns_name,
                 el_client.rpc_port_num,
             ),
             full_name,

@@ -1,6 +1,7 @@
 participants:
   - el_type: geth
     cl_type: teku
+    supernode: true
   - el_type: reth
     cl_type: prysm
   - el_type: nethermind
@@ -15,8 +16,6 @@ participants:
     cl_type: lodestar
 additional_services:
   - dora
-  - spamoor
-  - blockscout
 network_params:
   altair_fork_epoch: 0
   bellatrix_fork_epoch: 0
@@ -24,4 +23,6 @@ network_params:
   deneb_fork_epoch: 1
   electra_fork_epoch: 2
   fulu_fork_epoch: 3
+  bpo_1_epoch: 4
+  gloas_fork_epoch: 5
   preset: minimal

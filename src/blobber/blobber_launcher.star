@@ -43,7 +43,7 @@ def launch(
     node_selectors,
     global_tolerations,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
 
     blobber_service_name = "{0}".format(service_name)
 
@@ -58,7 +58,7 @@ def launch(
 
     blobber_service = plan.add_service(blobber_service_name, blobber_config)
     return blobber_context.new_blobber_context(
-        blobber_service.ip_address,
+        blobber_service.name,
         blobber_service.ports[BLOBBER_VALIDATOR_PROXY_PORT_ID].number,
     )
 

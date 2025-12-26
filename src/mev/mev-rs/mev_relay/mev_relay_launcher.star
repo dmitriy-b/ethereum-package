@@ -34,7 +34,7 @@ def launch_mev_relay(
     global_node_selectors,
     global_tolerations,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
     node_selectors = global_node_selectors
     image = mev_params.mev_relay_image
     network = (
@@ -105,10 +105,10 @@ def launch_mev_relay(
     return (
         "http://{0}@{1}:{2}".format(
             constants.DEFAULT_MEV_PUBKEY,
-            mev_relay_service.ip_address,
+            mev_relay_service.name,
             MEV_RELAY_ENDPOINT_PORT,
         ),
-        mev_relay_service.ip_address,
+        mev_relay_service.name,
         MEV_RELAY_ENDPOINT_PORT,
     )
 

@@ -19,7 +19,7 @@ def get_config(
     keymanager_file,
     image,
     global_log_level,
-    beacon_http_url,
+    beacon_http_urls,
     cl_context,
     el_context,
     remote_signer_context,
@@ -53,7 +53,7 @@ def get_config(
         "--paramsFile="
         + constants.GENESIS_CONFIG_MOUNT_PATH_ON_CONTAINER
         + "/config.yaml",
-        "--beaconNodes=" + beacon_http_url,
+        "--beaconNodes=" + ",".join(beacon_http_urls),
         "--suggestedFeeRecipient=" + constants.VALIDATING_REWARDS_ACCOUNT,
         # vvvvvvvvvvvvvvvvvvv PROMETHEUS CONFIG vvvvvvvvvvvvvvvvvvvvv
         "--metrics",
@@ -164,4 +164,6 @@ def get_config(
         config_args["min_memory"] = participant.vc_min_mem
     if participant.vc_max_mem > 0:
         config_args["max_memory"] = participant.vc_max_mem
+    if len(participant.vc_devices) > 0:
+        config_args["devices"] = participant.vc_devices
     return ServiceConfig(**config_args)

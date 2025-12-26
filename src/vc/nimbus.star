@@ -9,7 +9,7 @@ def get_config(
     el_cl_genesis_data,
     image,
     keymanager_file,
-    beacon_http_url,
+    beacon_http_urls,
     cl_context,
     el_context,
     remote_signer_context,
@@ -35,14 +35,20 @@ def get_config(
             node_keystore_files.raw_secrets_relative_dirpath,
         )
 
-    cmd = [
-        "--beacon-node=" + beacon_http_url,
-        "--suggested-fee-recipient=" + constants.VALIDATING_REWARDS_ACCOUNT,
-        # vvvvvvvvvvvvvvvvvvv METRICS CONFIG vvvvvvvvvvvvvvvvvvvvv
-        "--metrics",
-        "--metrics-address=0.0.0.0",
-        "--metrics-port={0}".format(vc_shared.VALIDATOR_CLIENT_METRICS_PORT_NUM),
-    ]
+    cmd = []
+
+    for beacon_url in beacon_http_urls:
+        cmd.append("--beacon-node=" + beacon_url)
+
+    cmd.extend(
+        [
+            "--suggested-fee-recipient=" + constants.VALIDATING_REWARDS_ACCOUNT,
+            # vvvvvvvvvvvvvvvvvvv METRICS CONFIG vvvvvvvvvvvvvvvvvvvvv
+            "--metrics",
+            "--metrics-address=0.0.0.0",
+            "--metrics-port={0}".format(vc_shared.VALIDATOR_CLIENT_METRICS_PORT_NUM),
+        ]
+    )
 
     if remote_signer_context == None:
         cmd.extend(
@@ -138,4 +144,6 @@ def get_config(
         config_args["min_memory"] = participant.vc_min_mem
     if participant.vc_max_mem > 0:
         config_args["max_memory"] = participant.vc_max_mem
+    if len(participant.vc_devices) > 0:
+        config_args["devices"] = participant.vc_devices
     return ServiceConfig(**config_args)

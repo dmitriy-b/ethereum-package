@@ -31,7 +31,7 @@ def launch(
     global_other_index,
     docker_cache_params,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
 
     snooper_service_name = "{0}".format(service_name)
 
@@ -54,7 +54,9 @@ def launch(
     snooper_service = plan.add_service(snooper_service_name, snooper_config)
     snooper_http_port = snooper_service.ports[SNOOPER_BEACON_RPC_PORT_ID]
     return snooper_beacon_context.new_snooper_beacon_client_context(
-        snooper_service.ip_address, SNOOPER_BEACON_RPC_PORT_NUM
+        snooper_service.ip_address,
+        SNOOPER_BEACON_RPC_PORT_NUM,
+        snooper_service.name,
     )
 
 

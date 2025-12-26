@@ -18,7 +18,7 @@ def get_config(
     el_cl_genesis_data,
     image,
     global_log_level,
-    beacon_http_url,
+    beacon_http_urls,
     cl_context,
     remote_signer_context,
     full_name,
@@ -38,7 +38,7 @@ def get_config(
         + constants.GENESIS_CONFIG_MOUNT_PATH_ON_CONTAINER
         + "/config.yaml",
         "--remote-signer-url={0}".format(remote_signer_context.http_url),
-        "--beacon-node-urls=" + beacon_http_url,
+        "--beacon-node-urls=" + ",".join(beacon_http_urls),
         "--fee-recipient=" + constants.VALIDATING_REWARDS_ACCOUNT,
         "--metrics-address=0.0.0.0",
         "--metrics-port={0}".format(vc_shared.VALIDATOR_CLIENT_METRICS_PORT_NUM),
@@ -101,4 +101,6 @@ def get_config(
         config_args["min_memory"] = participant.vc_min_mem
     if participant.vc_max_mem > 0:
         config_args["max_memory"] = participant.vc_max_mem
+    if len(participant.vc_devices) > 0:
+        config_args["devices"] = participant.vc_devices
     return ServiceConfig(**config_args)

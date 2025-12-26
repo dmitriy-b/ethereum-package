@@ -45,7 +45,7 @@ def launch_blutgang(
     additional_service_index,
     docker_cache_params,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
 
     all_el_client_info = []
     for index, participant in enumerate(participant_contexts):
@@ -54,7 +54,7 @@ def launch_blutgang(
         )
         all_el_client_info.append(
             new_el_client_info(
-                el_client.ip_addr,
+                el_client.dns_name,
                 el_client.rpc_port_num,
                 el_client.ws_port_num,
                 full_name,

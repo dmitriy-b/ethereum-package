@@ -108,7 +108,7 @@ def launch_full_beacon(
     port_publisher,
     additional_service_index,
 ):
-    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+    tolerations = shared_utils.get_tolerations(global_tolerations=global_tolerations)
     node_selectors = global_node_selectors
     postgres_output = postgres.run(
         plan,
@@ -145,12 +145,12 @@ def launch_full_beacon(
     )
 
     el_uri = "http://{0}:{1}".format(
-        el_contexts[0].ip_addr, el_contexts[0].rpc_port_num
+        el_contexts[0].dns_name, el_contexts[0].rpc_port_num
     )
     redis_url = "{}:{}".format(redis_output.hostname, redis_output.port_number)
 
     template_data = new_config_template_data(
-        cl_contexts[0].ip_addr,
+        cl_contexts[0].dns_name,
         cl_contexts[0].http_port,
         cl_contexts[0].client_name,
         el_uri,

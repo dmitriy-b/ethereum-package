@@ -32,6 +32,7 @@ beacon_snooper = import_module("./snooper/snooper_beacon_launcher.star")
 snooper_el_launcher = import_module("./snooper/snooper_el_launcher.star")
 blobber_launcher = import_module("./blobber/blobber_launcher.star")
 cl_context_module = import_module("./cl/cl_context.star")
+bootnodoor_launcher = import_module("./bootnodoor/bootnodoor_launcher.star")
 
 
 def launch_participant_network(
@@ -47,6 +48,8 @@ def launch_participant_network(
     keymanager_enabled,
     parallel_keystore_generation,
     extra_files_artifacts,
+    tempo_otlp_grpc_url,
+    backend,
 ):
     network_id = network_params.network_id
     num_participants = len(args_with_right_defaults.participants)
@@ -89,12 +92,15 @@ def launch_participant_network(
         el_cl_data = el_cl_genesis_data_generator.generate_el_cl_genesis_data(
             plan,
             ethereum_genesis_generator_image,
+            args_with_right_defaults.ethereum_genesis_generator_params,
             el_cl_genesis_config_template,
             el_cl_genesis_additional_contracts_template,
             final_genesis_timestamp,
             network_params,
             total_number_of_validator_keys,
             latest_block.files_artifacts[0] if latest_block != "" else "",
+            global_tolerations,
+            global_node_selectors,
         )
     elif network_params.network == constants.NETWORK_NAME.ephemery:
         # We are running an ephemery network
@@ -103,7 +109,7 @@ def launch_participant_network(
             final_genesis_timestamp,
             network_id,
             validator_data,
-        ) = launch_ephemery.launch(plan)
+        ) = launch_ephemery.launch(plan, global_tolerations, global_node_selectors)
     elif (
         network_params.network in constants.PUBLIC_NETWORKS
         and network_params.network != constants.NETWORK_NAME.ephemery
@@ -132,7 +138,27 @@ def launch_participant_network(
             plan,
             network_params.network,
             network_params.devnet_repo,
+            global_tolerations,
+            global_node_selectors,
         )
+
+    # Launch bootnodoor if configured
+    bootnodoor_enr = None
+    bootnodoor_enode = None
+    if "bootnodoor" in args_with_right_defaults.additional_services:
+        plan.print("Launching bootnodoor as bootnode service")
+        args_with_right_defaults.additional_services.remove("bootnodoor")
+        bootnodoor_enr, bootnodoor_enode = bootnodoor_launcher.launch_bootnodoor(
+            plan,
+            args_with_right_defaults.bootnodoor_params,
+            el_cl_data,
+            network_params,
+            global_node_selectors,
+            global_tolerations,
+            args_with_right_defaults.docker_cache_params,
+        )
+        plan.print("Bootnodoor launched with ENR: {0}".format(bootnodoor_enr))
+        plan.print("Bootnodoor launched with ENODE: {0}".format(bootnodoor_enode))
 
     # Launch all execution layer clients
     all_el_contexts = el_client_launcher.launch(
@@ -151,6 +177,7 @@ def launch_participant_network(
         args_with_right_defaults.mev_type,
         args_with_right_defaults.mev_params,
         extra_files_artifacts,
+        bootnodoor_enode,
     )
 
     # Launch all consensus layer clients
@@ -182,13 +209,27 @@ def launch_participant_network(
         global_node_selectors,
         global_tolerations,
         persistent,
+        tempo_otlp_grpc_url,
         num_participants,
         validator_data,
         prysm_password_relative_filepath,
         prysm_password_artifact_uuid,
         global_other_index,
         extra_files_artifacts,
+        backend,
+        bootnodoor_enr,
     )
+
+    # Stop beacon nodes for participants with skip_start enabled
+    for index, participant in enumerate(args_with_right_defaults.participants):
+        if participant.skip_start:
+            cl_context = all_cl_contexts[index]
+            plan.print(
+                "Stopping beacon node {0} due to skip_start flag".format(
+                    cl_context.beacon_service_name
+                )
+            )
+            plan.stop_service(cl_context.beacon_service_name)
 
     # Launch all blobbers after all CLs are up
     cl_context_to_blobber_url = {}
@@ -207,7 +248,7 @@ def launch_participant_network(
 
             # Store the blobber URL mapping
             blobber_http_url = "http://{0}:{1}".format(
-                blobber.ip_addr, blobber.port_num
+                blobber.dns_name, blobber.port_num
             )
             cl_context_to_blobber_url[
                 config.cl_context.beacon_service_name
@@ -465,6 +506,7 @@ def launch_participant_network(
             image=participant.vc_image,
             global_log_level=args_with_right_defaults.global_log_level,
             cl_context=get_cl_context_with_blobber_url(cl_context),
+            all_cl_contexts=all_cl_contexts,
             el_context=el_context,
             remote_signer_context=remote_signer_context,
             full_name=full_name,
@@ -480,6 +522,7 @@ def launch_participant_network(
             port_publisher=args_with_right_defaults.port_publisher,
             vc_index=current_vc_index,
             extra_files_artifacts=extra_files_artifacts,
+            tempo_otlp_grpc_url=tempo_otlp_grpc_url,
         )
         if vc_service_config == None:
             continue
@@ -595,4 +638,5 @@ def launch_participant_network(
         el_cl_data.files_artifact_uuid,
         network_id,
         el_cl_data.osaka_time,
+        el_cl_data.shadowfork_block_height,
     )
