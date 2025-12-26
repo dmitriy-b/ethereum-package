@@ -1,5 +1,6 @@
 shared_utils = import_module("../shared_utils/shared_utils.star")
 constants = import_module("../package_io/constants.star")
+input_parser = import_module("../package_io/input_parser.star")
 SERVICE_NAME = "dora"
 
 HTTP_PORT_NUMBER = 8080
@@ -34,11 +35,15 @@ def launch_dora(
     network_params,
     dora_params,
     global_node_selectors,
+    global_tolerations,
     mev_endpoints,
     mev_endpoint_names,
     port_publisher,
     additional_service_index,
+    docker_cache_params,
 ):
+    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+
     all_cl_client_info = []
     all_el_client_info = []
     for index, participant in enumerate(participant_contexts):
@@ -51,12 +56,24 @@ def launch_dora(
                 full_name,
             )
         )
+
+        snooper_el_engine_context = participant_contexts[
+            index
+        ].snooper_el_engine_context
+        execution_snooper_url = ""
+        if snooper_el_engine_context:
+            execution_snooper_url = "http://{0}:{1}".format(
+                snooper_el_engine_context.ip_addr,
+                snooper_el_engine_context.engine_rpc_port_num,
+            )
+
         all_el_client_info.append(
             new_el_client_info(
                 "http://{0}:{1}".format(
                     el_client.ip_addr,
                     el_client.rpc_port_num,
                 ),
+                execution_snooper_url,
                 full_name,
             )
         )
@@ -93,8 +110,10 @@ def launch_dora(
         network_params,
         dora_params,
         global_node_selectors,
+        tolerations,
         port_publisher,
         additional_service_index,
+        docker_cache_params,
     )
 
     plan.add_service(SERVICE_NAME, config)
@@ -105,8 +124,10 @@ def get_config(
     network_params,
     dora_params,
     node_selectors,
+    tolerations,
     port_publisher,
     additional_service_index,
+    docker_cache_params,
 ):
     config_file_path = shared_utils.path_join(
         DORA_CONFIG_MOUNT_DIRPATH_ON_SERVICE,
@@ -122,18 +143,32 @@ def get_config(
 
     IMAGE_NAME = dora_params.image
     env_vars = dora_params.env
-    if dora_params.image == constants.DEFAULT_DORA_IMAGE:
-        if network_params.fulu_fork_epoch < constants.FAR_FUTURE_EPOCH:
-            IMAGE_NAME = "ethpandaops/dora:fulu-support"
-            env_vars["FRONTEND_PPROF"] = "true"
-            env_vars["FRONTEND_SHOW_SENSITIVE_PEER_INFOS"] = "true"
-            env_vars["FRONTEND_SHOW_PEER_DAS_INFOS"] = "true"
-            env_vars["FRONTEND_SHOW_SUBMIT_DEPOSIT"] = "true"
-            env_vars["FRONTEND_SHOW_SUBMIT_EL_REQUESTS"] = "true"
+    default_dora_image = (
+        docker_cache_params.url
+        + (docker_cache_params.dockerhub_prefix if docker_cache_params.enabled else "")
+        + constants.DEFAULT_DORA_IMAGE
+    )
+    if dora_params.image == default_dora_image:
         if network_params.eip7732_fork_epoch < constants.FAR_FUTURE_EPOCH:
-            IMAGE_NAME = "ethpandaops/dora:eip7732-support"
+            IMAGE_NAME = (
+                docker_cache_params.url
+                + (
+                    docker_cache_params.dockerhub_prefix
+                    if docker_cache_params.enabled
+                    else ""
+                )
+                + "ethpandaops/dora:eip7732-support"
+            )
         if network_params.eip7805_fork_epoch < constants.FAR_FUTURE_EPOCH:
-            IMAGE_NAME = "ethpandaops/dora:eip7805-support"
+            IMAGE_NAME = (
+                docker_cache_params.url
+                + (
+                    docker_cache_params.dockerhub_prefix
+                    if docker_cache_params.enabled
+                    else ""
+                )
+                + "ethpandaops/dora:eip7805-support"
+            )
 
     return ServiceConfig(
         image=IMAGE_NAME,
@@ -150,6 +185,7 @@ def get_config(
         min_memory=MIN_MEMORY,
         max_memory=MAX_MEMORY,
         node_selectors=node_selectors,
+        tolerations=tolerations,
     )
 
 
@@ -158,6 +194,7 @@ def new_config_template_data(
 ):
     return {
         "Network": network,
+        "PublicRPC": el_client_info[0]["Execution_HTTP_URL"],
         "ListenPortNum": listen_port_num,
         "CLClientInfo": cl_client_info,
         "ELClientInfo": el_client_info,
@@ -173,8 +210,9 @@ def new_cl_client_info(beacon_http_url, full_name):
     }
 
 
-def new_el_client_info(execution_http_url, full_name):
+def new_el_client_info(execution_http_url, execution_snooper_url, full_name):
     return {
         "Execution_HTTP_URL": execution_http_url,
+        "Execution_Engine_Snooper_URL": execution_snooper_url,
         "FullName": full_name,
     }

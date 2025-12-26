@@ -175,6 +175,7 @@ participants:
     # - reth: ghcr.io/paradigmxyz/reth
     # - ethereumjs: ethpandaops/ethereumjs:master
     # - nimbus-eth1: ethpandaops/nimbus-eth1:master
+    # - ethrex: ghcr.io/lambdaclass/ethrex:latest
     el_image: ""
 
     # The log level string that this participant's EL client should log at
@@ -193,6 +194,12 @@ participants:
 
     # A list of optional extra params that will be passed to the EL client container for modifying its behaviour
     el_extra_params: []
+
+    # A list of optional extra mount points that will be passed to the EL client container
+    # Key is the mount path (becomes a directory), value MUST reference a key from extra_files
+    # The file will be available at <mount_path>/<extra_files_key>
+    # Example: el_extra_mounts: {"/config": "my_config_file"}  # Creates /config/my_config_file
+    el_extra_mounts: {}
 
     # A list of tolerations that will be passed to the EL client container
     # Only works with Kubernetes
@@ -229,7 +236,7 @@ participants:
     # - lighthouse: sigp/lighthouse:latest
     # - teku: consensys/teku:latest
     # - nimbus: statusim/nimbus-eth2:multiarch-latest
-    # - prysm: gcr.io/prysmaticlabs/prysm/beacon-chain:latest
+    # - prysm: gcr.io/offchainlabs/prysm/beacon-chain:latest
     # - lodestar: chainsafe/lodestar:next
     # - grandine: sifrai/grandine:stable
     cl_image: ""
@@ -251,6 +258,12 @@ participants:
     # A list of optional extra params that will be passed to the CL client Beacon container for modifying its behaviour
     # If the client combines the Beacon & validator nodes (e.g. Teku, Nimbus), then this list will be passed to the combined Beacon-validator node
     cl_extra_params: []
+
+    # A list of optional extra mount points that will be passed to the CL client container
+    # Key is the mount path (becomes a directory), value MUST reference a key from extra_files
+    # The file will be available at <mount_path>/<extra_files_key>
+    # Example: cl_extra_mounts: {"/config": "my_config_file"}  # Creates /config/my_config_file
+    cl_extra_mounts: {}
 
     # A list of tolerations that will be passed to the CL client container
     # Only works with Kubernetes
@@ -299,7 +312,7 @@ participants:
     # - lighthouse: sigp/lighthouse:latest
     # - lodestar: chainsafe/lodestar:latest
     # - nimbus: statusim/nimbus-validator-client:multiarch-latest
-    # - prysm: gcr.io/prysmaticlabs/prysm/validator:latest
+    # - prysm: gcr.io/offchainlabs/prysm/validator:latest
     # - teku: consensys/teku:latest
     # - vero: ghcr.io/serenita-org/vero:master
     vc_image: ""
@@ -321,6 +334,12 @@ participants:
     # A list of optional extra params that will be passed to the validator client container for modifying its behaviour
     # If the client combines the Beacon & validator nodes (e.g. Teku, Nimbus), then this list will also be passed to the combined Beacon-validator node
     vc_extra_params: []
+
+    # A list of optional extra mount points that will be passed to the validator client container
+    # Key is the mount path (becomes a directory), value MUST reference a key from extra_files
+    # The file will be available at <mount_path>/<extra_files_key>
+    # Example: vc_extra_mounts: {"/config": "my_validator_config"}  # Creates /config/my_validator_config
+    vc_extra_mounts: {}
 
     # A list of tolerations that will be passed to the validator container
     # Only works with Kubernetes
@@ -446,6 +465,10 @@ participants:
     # Defaults to empty
     blobber_extra_params: []
 
+    # Blobber image to be used for the blobber container
+    # Defaults to empty
+    blobber_image: ethpandaops/blobber:latest
+
     # A set of parameters the node needs to reach an external block building network
     # If `null` then the builder infrastructure will not be instantiated
     # Example:
@@ -489,7 +512,7 @@ network_params:
   network_id: "3151908"
 
   # The address of the staking contract address on the Eth1 chain
-  deposit_contract_address: "0x4242424242424242424242424242424242424242"
+  deposit_contract_address: "0x00000000219ab540356cBB839Cbe05303d7705Fa"
 
   # Number of seconds per slot on the Beacon chain
   seconds_per_slot: 12
@@ -508,7 +531,9 @@ network_params:
   genesis_delay: 20
 
   # The gas limit of the network set at genesis
-  genesis_gaslimit: 30000000
+  # Defaults to 60000000
+
+  genesis_gaslimit: 60000000
 
   # Max churn rate for the network introduced by
   # EIP-7514 https://eips.ethereum.org/EIPS/eip-7514
@@ -555,8 +580,8 @@ network_params:
   deneb_fork_epoch: 0
 
   # Electra fork epoch
-  # Defaults to 18446744073709551615
-  electra_fork_epoch: 18446744073709551615
+  # Defaults to 0
+  electra_fork_epoch: 0
 
   # Fulu fork epoch
   # Defaults to 18446744073709551615
@@ -569,10 +594,22 @@ network_params:
   # The snapshots are taken with https://github.com/ethpandaops/snapshotter
   network_sync_base_url: https://snapshots.ethpandaops.io/
 
+  # Force network sync with a custom snapshot
+  # This enables quicker EL sync (use with caution)
+  # Defaults to false
+  force_snapshot_sync: false
+
+  # The block height of the shadowfork
+  # This is used to sync the network from a snapshot at a specific block height
+  # Defaults to "latest"
+  # Example: shadowfork_block_height: 340000 for hoodi
+  shadowfork_block_height: "latest"
+
   # The number of data column sidecar subnets used in the gossipsub protocol
   data_column_sidecar_subnet_count: 128
   # Number of DataColumn random samples a node queries per slot
   samples_per_slot: 8
+
   # Minimum number of subnets an honest node custodies and serves samples from
   # Defaults to 4
   custody_requirement: 4
@@ -584,12 +621,14 @@ network_params:
   # Base fee update fraction for Electra fork (default 5007716)
   base_fee_update_fraction_electra: 5007716
 
-  # Maximum number of blobs per block for Fulu fork (default 12)
-  max_blobs_per_block_fulu: 12
-  # Target number of blobs per block for Fulu fork (default 9)
-  target_blobs_per_block_fulu: 9
-  # Base fee update fraction for Fulu fork (default 5007716)
-  base_fee_update_fraction_fulu: 5007716
+  # EIP-7732 fork epoch
+  # Defaults to 18446744073709551615
+  eip7732_fork_epoch: 18446744073709551615
+
+  # EIP-7805 fork epoch
+  # Defaults to 18446744073709551615
+  eip7805_fork_epoch: 18446744073709551615
+
 
   # Preset for the network
   # Default: "mainnet"
@@ -639,6 +678,78 @@ network_params:
   # Defaults to false
   perfect_peerdas_enabled: false
 
+  # Gas limit for the network
+  # Default to 0
+  # If set to 0, the gas limit will be set to the default gas limit for the clients
+  # Set this value to gas limit in millionths of a gwei
+  # Example: gas_limit: 60000000
+  # This will override the gas limit for each EL client
+  # Do not confuse with genesis_gaslimit which sets the gas limit at the genesis file level
+  gas_limit: 0
+
+
+  # BPO
+  # BPO1 epoch (default 18446744073709551615)
+  bpo_1_epoch: 18446744073709551615
+  # Maximum number of blobs per block for BPO1 (default 12)
+  bpo_1_max_blobs: 12
+  # Target number of blobs per block for BPO1 (default 9)
+  bpo_1_target_blobs: 9
+  # Base fee update fraction for BPO1 (default 5007716)
+  bpo_1_base_fee_update_fraction: 5007716
+
+  # BPO2 epoch (default 18446744073709551615)
+  bpo_2_epoch: 18446744073709551615
+  # Maximum number of blobs per block for BPO2 (default 12)
+  bpo_2_max_blobs: 12
+  # Target number of blobs per block for BPO2 (default 9)
+  bpo_2_target_blobs: 9
+  # Base fee update fraction for BPO2 (default 5007716)
+  bpo_2_base_fee_update_fraction: 5007716
+
+  # BPO3 epoch (default 18446744073709551615)
+  bpo_3_epoch: 18446744073709551615
+  # Maximum number of blobs per block for BPO3 (default 12)
+  bpo_3_max_blobs: 12
+  # Target number of blobs per block for BPO3 (default 9)
+  bpo_3_target_blobs: 9
+  # Base fee update fraction for BPO3 (default 5007716)
+  bpo_3_base_fee_update_fraction: 5007716
+
+  # BPO4 epoch (default 18446744073709551615)
+  bpo_4_epoch: 18446744073709551615
+  # Maximum number of blobs per block for BPO4 (default 12)
+  bpo_4_max_blobs: 12
+  # Target number of blobs per block for BPO4 (default 9)
+  bpo_4_target_blobs: 9
+  # Base fee update fraction for BPO4 (default 5007716)
+  bpo_4_base_fee_update_fraction: 5007716
+
+  # BPO5 epoch (default 18446744073709551615)
+  bpo_5_epoch: 18446744073709551615
+  # Maximum number of blobs per block for BPO5 (default 12)
+  bpo_5_max_blobs: 12
+  # Target number of blobs per block for BPO5 (default 9)
+  bpo_5_target_blobs: 9
+  # Base fee update fraction for BPO5 (default 5007716)
+  bpo_5_base_fee_update_fraction: 5007716
+
+  # Withdrawal type - available options (0x00, 0x01, 0x02)
+  # Default to "0x00"
+  withdrawal_type: "0x00"
+
+  # Withdrawal address
+  # Default to "0x8943545177806ED17B9F23F0a21ee5948eCaa776" - 0 address of mnemonic
+  withdrawal_address: "0x8943545177806ED17B9F23F0a21ee5948eCaa776"
+
+  # Validator balance (available ranges: 32-2048)
+  # Default to 32 ETH
+  validator_balance: 32
+
+  # Minimum number of epochs for data column sidecars requests
+  # Default to 4096
+  min_epochs_for_data_column_sidecars_requests: 4096
+
 # Global parameters for the network
 
 # By default includes
@@ -654,12 +765,12 @@ additional_services:
   - tx_fuzz
   - custom_flood
   - spamoor
-  - spamoor_blob
   - forkmon
   - blockscout
   - dora
   - full_beaconchain_explorer
-  - prometheus_grafana
+  - prometheus
+  - grafana
   - blobscan
   - dugtrio
   - blutgang
@@ -670,8 +781,8 @@ additional_services:
 # Configuration place for blockscout explorer - https://github.com/blockscout/blockscout
 blockscout_params:
   # blockscout docker image to use
-  # Defaults to blockscout/blockscout:latest
-  image: "blockscout/blockscout:latest"
+  # Defaults to ghcr.io/blockscout/blockscout:latest
+  image: "ghcr.io/blockscout/blockscout:latest"
   # blockscout smart contract verifier image to use
   # Defaults to ghcr.io/blockscout/smart-contract-verifier:latest
   verif_image: "ghcr.io/blockscout/smart-contract-verifier:latest"
@@ -687,6 +798,17 @@ dora_params:
   # A list of optional extra env_vars the dora container should spin up with
   env: {}
 
+# Define custom file contents to be mounted into containers
+# These files are referenced by name in el_extra_mounts, cl_extra_mounts, and vc_extra_mounts
+extra_files: {}
+  # Example:
+  # my_config_file.yaml: |
+  #   setting1: value1
+  #   setting2: value2
+  # my_script.sh: |
+  #   #!/bin/bash
+  #   echo "Custom script"
+  
 # Configuration place for transaction spammer - https://github.com/MariusVanDerWijden/tx-fuzz
 tx_fuzz_params:
   # TX Spammer docker image to use
@@ -849,19 +971,27 @@ mev_params:
   # The image to use for MEV boost relay
   mev_relay_image: ethpandaops/mev-boost-relay:main
   # The image to use for the builder
-  mev_builder_image: ethpandaops/flashbots-builder:main
+  mev_builder_image: ethpandaops/reth-rbuilder:develop
   # The image to use for the CL builder
   mev_builder_cl_image: sigp/lighthouse:latest
+  # The subsidy to use for the builder (in ETH)
+  mev_builder_subsidy: 0
   # The image to use for mev-boost
   mev_boost_image: ethpandaops/mev-boost:develop
   # Parameters for MEV Boost. This overrides all arguments of the mev-boost container
   mev_boost_args: []
   # Extra parameters to send to the API
   mev_relay_api_extra_args: []
+  # Extra environment variables to send to the API
+  mev_relay_api_extra_env_vars: {}
   # Extra parameters to send to the housekeeper
   mev_relay_housekeeper_extra_args: []
+  # Extra environment variables to send to the housekeeper
+  mev_relay_housekeeper_extra_env_vars: {}
   # Extra parameters to send to the website
   mev_relay_website_extra_args: []
+  # Extra environment variables to send to the website
+  mev_relay_website_extra_env_vars: {}
   # Extra parameters to send to the builder
   mev_builder_extra_args: []
   # Prometheus additional configuration for the mev builder participant.
@@ -871,15 +1001,10 @@ mev_params:
     scrape_interval: 15s
     # Additional labels to be added. Default to empty
     labels: {}
-  # Image to use for mev-flood
-  mev_flood_image: flashbots/mev-flood
-  # Extra parameters to send to mev-flood
-  mev_flood_extra_args: []
-  # Number of seconds between bundles for mev-flood
-  mev_flood_seconds_per_bundle: 15
-  # Optional parameters to send to the custom_flood script that sends reliable payloads
-  custom_flood_params:
-    interval_between_transactions: 1
+  # Image to use for mock mev
+  mock_mev_image: ethpandaops/rustic-builder:main
+  # Whether to launch Adminer for the MEV relay PostgreSQL database
+  launch_adminer: false
 
 # Enables Xatu Sentry for all participants
 # Defaults to false
@@ -943,64 +1068,39 @@ checkpoint_sync_url: ""
 spamoor_params:
   # The image to use for spamoor
   image: ethpandaops/spamoor:latest
-  # The spamoor scenario to use (see https://github.com/ethpandaops/spamoor)
-  # Valid scenarios are:
-  #  eoatx, erctx, deploytx, deploy-destruct, blobs, gasburnertx
-  # Defaults to eoatx
-  scenario: eoatx
-  # Throughput of spamoor
-  # Defaults to 1000
-  throughput: 1000
-  # Max pending transactions for spamoor
-  # Defaults to 1000
-  max_pending: 1000
-  # Max wallets for spamoor
-  # Defaults to 500
-  max_wallets: 500
-  # Extra parameters to send to spamoor
-  # Defaults to empty
-  spamoor_extra_args: []
-
-# Configuration place for spammor as blob spammer
-spamoor_blob_params:
-  # spamoor docker image to use
-  # Defaults to the latest
-  image: "ethpandaops/spamoor:latest"
-  # The spamoor blob scenario to use (see https://github.com/ethpandaops/spamoor)
-  # Valid blob scenarios are:
-  # - blobs (normal blob transactions only)
-  # - blob-combined (normal & special blobs with replacements)
-  # - blob-conflicting (conflicting blob & dynfee transactions)
-  # - blob-replacements (normal blobs with replacement blob transactions)
-  # Defaults to blob-combined
-  scenario: blob-combined
-  # Throughput of spamoor
-  # Defaults to 3
-  throughput: 3
-  # Maximum number of blobs per transaction
-  # Defaults to 2
-  max_blobs: 2
-  # Max pending blob transactions for spamoor
-  # Defaults to 6
-  max_pending: 6
-  # Max wallets for spamoor
-  # Defaults to 20
-  max_wallets: 20
+  # Resource management for spamoor
+  # CPU is milicores
+  # RAM is in MB
+  min_cpu: 10
+  max_cpu: 1000
+  min_mem: 20
+  max_mem: 300
+  # A list of spammers to launch on startup
+  # example:
+  # - scenario: eoatx  # The spamoor scenario to use (see https://github.com/ethpandaops/spamoor)
+  #   name: "Optional name for this example spammer"
+  #   config:
+  #     throughput: 10  # 10 tx per block
+  # - scenario: erctx
+  #   config:
+  #     throughput: 10  # 10 tx per block
+  spammers: []
   # A list of optional params that will be passed to the spamoor command for modifying its behaviour
-  spamoor_extra_args: []
+  extra_args: []
 
 # Ethereum genesis generator params
 ethereum_genesis_generator_params:
   # The image to use for ethereum genesis generator
-  image: ethpandaops/ethereum-genesis-generator:4.0.2
+  image: ethpandaops/ethereum-genesis-generator:5.0.0
 
-# Global parameter to set the exit ip address of services and public ports
+# Configuration for public ports and NAT exit IP addresses
 port_publisher:
-  # if you have a service that you want to expose on a specific interface; set that IP here
-  # if you set it to auto it gets the public ip from ident.me and sets it
-  # Defaults to constants.PRIVATE_IP_ADDRESS_PLACEHOLDER
-  # The default value just means its the IP address of the container in which the service is running
+  # Global NAT exit IP address for all services (optional)
+  # If set, this will be used for all service groups (overrides individual nat_exit_ip settings)
+  # Set to "auto" to automatically detect public IP from ident.me
+  # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (uses per-service settings)
   nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
+
   # Execution Layer public port exposed to your local machine
   # Disabled by default
   # Public port start defaults to 32000
@@ -1008,6 +1108,12 @@ port_publisher:
   el:
     enabled: false
     public_port_start: 32000
+    # nat_exit_ip: IP address to expose for EL P2P networking (optional)
+    # Only used if global nat_exit_ip is not set
+    # Set to "auto" to automatically detect public IP from ident.me
+    # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (container IP)
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
+
   # Consensus Layer public port exposed to your local machine
   # Disabled by default
   # Public port start defaults to 33000
@@ -1015,6 +1121,12 @@ port_publisher:
   cl:
     enabled: false
     public_port_start: 33000
+    # nat_exit_ip: IP address to expose for CL P2P networking (optional)
+    # Only used if global nat_exit_ip is not set
+    # Set to "auto" to automatically detect public IP from ident.me
+    # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (container IP)
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
+
   # Validator client public port exposed to your local machine
   # Disabled by default
   # Public port start defaults to 34000
@@ -1022,6 +1134,12 @@ port_publisher:
   vc:
     enabled: false
     public_port_start: 34000
+    # nat_exit_ip: IP address to expose for VC networking (optional)
+    # Only used if global nat_exit_ip is not set
+    # Set to "auto" to automatically detect public IP from ident.me
+    # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (container IP)
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
+
   # remote signer public port exposed to your local machine
   # Disabled by default
   # Public port start defaults to 35000
@@ -1029,6 +1147,12 @@ port_publisher:
   remote_signer:
     enabled: false
     public_port_start: 35000
+    # nat_exit_ip: IP address to expose for remote signer networking (optional)
+    # Only used if global nat_exit_ip is not set
+    # Set to "auto" to automatically detect public IP from ident.me
+    # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (container IP)
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
+
   # Additional services public port exposed to your local machine
   # Disabled by default
   # Public port start defaults to 36000
@@ -1036,9 +1160,95 @@ port_publisher:
   additional_services:
     enabled: false
     public_port_start: 36000
+    # nat_exit_ip: IP address to expose for additional services (optional)
+    # Only used if global nat_exit_ip is not set
+    # Set to "auto" to automatically detect public IP from ident.me
+    # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (container IP)
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
+
+  # MEV public port exposed to your local machine
+  # Disabled by default
+  # Public port start defaults to 37000
+  # You can't run multiple enclaves on the same port settings
+  mev:
+    enabled: false
+    public_port_start: 37000
+    # nat_exit_ip: IP address to expose for MEV services (optional)
+    # Only used if global nat_exit_ip is not set
+    # Set to "auto" to automatically detect public IP from ident.me
+    # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (container IP)
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
+
+  # Other public port exposed to your local machine (like ethereum metrics exporter, snooper)
+  # Disabled by default
+  # Public port start defaults to 38000
+  # You can't run multiple enclaves on the same port settings
+  other:
+    enabled: false
+    public_port_start: 38000
+    # nat_exit_ip: IP address to expose for other services (optional)
+    # Only used if global nat_exit_ip is not set
+    # Set to "auto" to automatically detect public IP from ident.me
+    # Defaults to KURTOSIS_IP_ADDR_PLACEHOLDER (container IP)
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER
 ```
 
 #### Example configurations
+
+<details>
+    <summary>Port Publisher Configuration Examples</summary>
+
+**Global NAT Exit IP (Backward Compatible)**
+```yaml
+port_publisher:
+  nat_exit_ip: "auto"  # All services use auto-detected public IP
+  el:
+    enabled: true
+    public_port_start: 32000
+  cl:
+    enabled: true
+    public_port_start: 33000
+  additional_services:
+    enabled: true
+    public_port_start: 36000
+```
+
+**Per-Service NAT Exit IP (Granular Control)**
+```yaml
+port_publisher:
+  nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER  # Not set globally
+  el:
+    enabled: true
+    public_port_start: 32000
+    nat_exit_ip: "auto"  # Only EL uses public IP
+  cl:
+    enabled: true
+    public_port_start: 33000
+    nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER  # CL uses container IP
+  additional_services:
+    enabled: true
+    public_port_start: 36000
+    nat_exit_ip: "192.168.1.100"  # Custom IP for additional services
+```
+
+**Mixed Configuration**
+```yaml
+port_publisher:
+  nat_exit_ip: KURTOSIS_IP_ADDR_PLACEHOLDER  # Not set globally
+  el:
+    enabled: true
+    public_port_start: 32000
+    nat_exit_ip: "auto"  # Auto-detect for EL
+  cl:
+    enabled: true
+    public_port_start: 33000
+    nat_exit_ip: "auto"  # Auto-detect for CL
+  additional_services:
+    enabled: true
+    public_port_start: 36000
+    # Uses default KURTOSIS_IP_ADDR_PLACEHOLDER for additional services
+```
+</details>
 
 <details>
     <summary>Verkle configuration example</summary>
@@ -1120,7 +1330,7 @@ network_params:
 </details>
 
 <details>
-    <summary>A 2-node geth/lighthouse network with optional services (Grafana, Prometheus, tx_fuzz, EngineAPI snooper, and a testnet verifier)</summary>
+    <summary>A 2-node geth/lighthouse network with optional services (Grafana, Prometheus, tx_fuzz, EngineAPI snooper)</summary>
 
 ```yaml
 participants:
@@ -1129,17 +1339,57 @@ participants:
     count: 2
 snooper_enabled: true
 additional_services:
-  - prometheus_grafana
+  - prometheus
+  - grafana
+  - tx_fuzz
 ethereum_metrics_exporter_enabled: true
 ```
 
 </details>
 
+## Extra Files and Mounts
+
+The `extra_files` feature allows you to define custom file contents in your configuration and mount them into any container (EL, CL, or VC).
+
+### How It Works
+
+1. **Define file contents** in the top-level `extra_files` section
+2. **Mount the files** into containers using `el_extra_mounts`, `cl_extra_mounts`, or `vc_extra_mounts`
+3. **Access the files** inside the container at `<mount_path>/<file_name>`
+
+### Important: Understanding Mount Paths
+
+Due to how Kurtosis handles artifacts, mount paths become **directories**, not files. When you mount a file:
+- The mount path you specify becomes a directory
+- Your file is placed inside that directory with its original name from `extra_files`
+
+### Complete Example
+
+```yaml
+# Define your custom files at the top level
+extra_files:
+  validator_config.json: |
+    {
+      "graffiti": "MyValidator",
+      "enable_doppelganger": true,
+      "suggested_fee_recipient": "0x1234..."
+    }
+
+participants:
+  - el_type: geth
+    cl_type: lighthouse
+    
+    # Mount files into the consensus layer client  
+    cl_extra_mounts:
+      "/configs": "validator_config.json" # File available at: /configs/validator_config.json
+```
+
+
 ## Beacon Node <> Validator Client compatibility
 
 |               | Lighthouse VC | Prysm VC | Teku VC | Lodestar VC | Nimbus VC
 |---------------|---------------|----------|---------|-------------|-----------|
-| Lighthouse BN | ✅            | ❌       | ✅      | ✅          | ✅
+| Lighthouse BN | ✅            | ✅       | ✅      | ✅          | ✅
 | Prysm BN      | ✅            | ✅       | ✅      | ✅          | ✅
 | Teku BN       | ✅            | ✅       | ✅      | ✅          | ✅
 | Lodestar BN   | ✅            | ✅       | ✅      | ✅          | ✅
@@ -1148,39 +1398,47 @@ ethereum_metrics_exporter_enabled: true
 
 ## Custom labels for Docker and Kubernetes
 
-There are 4 custom labels that can be used to identify the nodes in the network. These labels are used to identify the nodes in the network and can be used to run chaos tests on specific nodes. An example for these labels are as follows:
+There are 6 custom labels that can be used to identify the nodes in the network. These labels are used to identify the nodes in the network and can be used to run chaos tests on specific nodes. An example for these labels are as follows:
 
 Execution Layer (EL) nodes:
 
 ```sh
-  "com.kurtosistech.custom.ethereum-package-client": "geth",
-  "com.kurtosistech.custom.ethereum-package-client-image": "ethereum-client-go-latest",
-  "com.kurtosistech.custom.ethereum-package-client-type": "execution",
-  "com.kurtosistech.custom.ethereum-package-connected-client": "lighthouse",
+  "kurtosistech.com.custom/ethereum-package.client": "geth",
+  "kurtosistech.com.custom/ethereum-package.client-image": "ethereum-client-go-latest",
+  "kurtosistech.com.custom/ethereum-package.client-language:": "go",
+  "kurtosistech.com.custom/ethereum-package.client-type": "execution",
+  "kurtosistech.com.custom/ethereum-package.connected-client": "lighthouse",
+  "kurtosistech.com.custom/ethereum-package.node-index": "1",
 ```
 
 Consensus Layer (CL) nodes - Beacon:
 
 ```sh
-  "com.kurtosistech.custom.ethereum-package-client": "lighthouse",
-  "com.kurtosistech.custom.ethereum-package-client-image": "sigp-lighthouse-latest",
-  "com.kurtosistech.custom.ethereum-package-client-type": "beacon",
-  "com.kurtosistech.custom.ethereum-package-connected-client": "geth",
+  "kurtosistech.com.custom/ethereum-package.client": "lighthouse",
+  "kurtosistech.com.custom/ethereum-package.client-image": "sigp-lighthouse-latest",
+  "kurtosistech.com.custom/ethereum-package.client-language:": "rust",
+  "kurtosistech.com.custom/ethereum-package.client-type": "beacon",
+  "kurtosistech.com.custom/ethereum-package.connected-client": "geth",
+  "kurtosistech.com.custom/ethereum-package.node-index": "1",
 ```
 
 Consensus Layer (CL) nodes - Validator:
 
 ```sh
-  "com.kurtosistech.custom.ethereum-package-client": "lighthouse",
-  "com.kurtosistech.custom.ethereum-package-client-image": "sigp-lighthouse-latest",
-  "com.kurtosistech.custom.ethereum-package-client-type": "validator",
-  "com.kurtosistech.custom.ethereum-package-connected-client": "geth",
+  "kurtosistech.com.custom/ethereum-package.client": "lighthouse",
+  "kurtosistech.com.custom/ethereum-package.client-image": "sigp-lighthouse-latest",
+  "kurtosistech.com.custom/ethereum-package.client-language:": "rust",
+  "kurtosistech.com.custom/ethereum-package.client-type": "validator",
+  "kurtosistech.com.custom/ethereum-package.connected-client": "geth",
+  "kurtosistech.com.custom/ethereum-package.node-index": "1",
 ```
 
-`ethereum-package-client` describes which client is running on the node.
-`ethereum-package-client-image` describes the image that is used for the client.
-`ethereum-package-client-type` describes the type of client that is running on the node (`execution`,`beacon` or `validator`).
-`ethereum-package-connected-client` describes the CL/EL client that is connected to the EL/CL client.
+* `ethereum-package.client` describes which client is running on the node.
+* `ethereum-package.client-image` describes the image that is used for the client.
+* `ethereum-package.client-type` describes the type of client that is running on the node (`execution`,`beacon` or `validator`).
+* `ethereum-package.connected-client` describes the CL/EL client that is connected to the EL/CL client.
+* `ethereum-package.client-language` describes the implementation language of the running service.
+* `ethereum-package.node-index` describes the index of the node (participant) that the service belongs to.
 
 ## Proposer Builder Separation (PBS) emulation
 
@@ -1197,7 +1455,6 @@ Starting your network up with `"mev_type": "full"` will instantiate and connect 
 3. `mev-relay-website` - A website to monitor payloads that have been delivered
 4. `mev-relay-housekeeper` - Updates known validators, proposer duties, and more in the background. Only a single instance of this should run.
 5. `mev-boost` - open-source middleware instantiated for each EL/Cl pair in the network, including the builder
-6. `mev-flood` - Deploys UniV2 smart contracts, provisions liquidity on UniV2 pairs, & sends a constant stream of UniV2 swap transactions to the network's public mempool.
 
 <details>
     <summary>Caveats when using "mev_type": "full"</summary>
@@ -1226,9 +1483,6 @@ Here's a table of where the keys are used
 | 0             | Builder             | ✅                |                 | As coinbase                |
 | 0             | mev_custom_flood    |                   | ✅              | As the receiver of balance |
 | 3             | transaction_spammer | ✅                |                 | To spam transactions with  |
-| 4             | spamoor_blob        | ✅                |                 | As the sender of blobs     |
-| 6             | mev_flood           | ✅                |                 | As the contract owner      |
-| 7             | mev_flood           | ✅                |                 | As the user_key            |
 | 8             | assertoor           | ✅                | ✅              | As the funding for tests   |
 | 11            | mev_custom_flood    | ✅                |                 | As the sender of balance   |
 | 12            | l2_contracts        | ✅                |                 | Contract deployer address  |
@@ -1243,6 +1497,14 @@ First, install prerequisites:
 Then, run the dev loop:
 
 1. Make your code changes
+1. **Run the linter to format and check your code:**
+
+   ```bash
+   kurtosis lint --format
+   ```
+
+   This ensures your Starlark code follows the project's formatting standards and catches any syntax issues.
+
 1. Rebuild and re-run the package by running the following from the root of the repo:
 
    ```bash

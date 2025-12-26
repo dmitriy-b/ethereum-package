@@ -1,5 +1,7 @@
 shared_utils = import_module("../shared_utils/shared_utils.star")
 static_files = import_module("../static_files/static_files.star")
+constants = import_module("../package_io/constants.star")
+input_parser = import_module("../package_io/input_parser.star")
 
 SERVICE_NAME = "grafana"
 
@@ -43,8 +45,13 @@ def launch_grafana(
     dashboard_providers_config_template,
     prometheus_private_url,
     global_node_selectors,
+    global_tolerations,
     grafana_params,
+    port_publisher,
+    index,
 ):
+    tolerations = input_parser.get_client_tolerations([], [], global_tolerations)
+
     (
         grafana_config_artifacts_uuid,
         grafana_dashboards_artifacts_uuid,
@@ -63,11 +70,20 @@ def launch_grafana(
         grafana_additional_dashboards_data,
     )
 
+    public_ports = shared_utils.get_additional_service_standard_public_port(
+        port_publisher,
+        HTTP_PORT_ID,
+        index,
+        1,
+    )
+
     config = get_config(
         grafana_config_artifacts_uuid,
         merged_dashboards_artifact_name,
         global_node_selectors,
+        tolerations,
         grafana_params,
+        public_ports,
     )
 
     plan.add_service(SERVICE_NAME, config)
@@ -123,7 +139,9 @@ def get_config(
     grafana_config_artifacts_name,
     grafana_dashboards_artifacts_name,
     node_selectors,
+    tolerations,
     grafana_params,
+    public_ports,
 ):
     return ServiceConfig(
         image=grafana_params.image,
@@ -144,6 +162,8 @@ def get_config(
         min_memory=grafana_params.min_mem,
         max_memory=grafana_params.max_mem,
         node_selectors=node_selectors,
+        tolerations=tolerations,
+        public_ports=public_ports,
     )
 
 
