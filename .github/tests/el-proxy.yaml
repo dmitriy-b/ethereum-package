@@ -5,15 +5,20 @@ participants:
     # el_proxy_enabled: true
   - el_type: nethermind
     cl_type: lighthouse
-    validator_count: 0
+    validator_count: 2
     use_separate_vc: true
     snooper_enabled: false
     el_proxy_enabled: true
+    blobber_enabled: true
+    blobber_image: ethpandaops/blobber:latest
+    blobber_extra_params:
+      - --proposal-action-frequency=1
+      - "--proposal-action={\"name\": \"blob_gossip_delay\", \"delay_milliseconds\": 3000}"
 
 # Global settings - default for participants without explicit el_proxy_enabled
 snooper_enabled: false
 el_proxy_enabled: false
-network_params:
-  preset: minimal
-  network: kurtosis
 
+additional_services:
+  - dora
+  - spamoor

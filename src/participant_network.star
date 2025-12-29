@@ -32,6 +32,7 @@ beacon_snooper = import_module("./snooper/snooper_beacon_launcher.star")
 snooper_el_launcher = import_module("./snooper/snooper_el_launcher.star")
 blobber_launcher = import_module("./blobber/blobber_launcher.star")
 cl_context_module = import_module("./cl/cl_context.star")
+el_proxy = import_module("./el-proxy/el_proxy_launcher.star")
 
 
 def launch_participant_network(
@@ -49,8 +50,10 @@ def launch_participant_network(
     extra_files_artifacts,
 ):
     # Debug print to examine args_with_right_defaults
-    plan.print("args_with_right_defaults attributes: {0}".format(dir(args_with_right_defaults)))
-    
+    plan.print(
+        "args_with_right_defaults attributes: {0}".format(dir(args_with_right_defaults))
+    )
+
     network_id = network_params.network_id
     num_participants = len(args_with_right_defaults.participants)
     total_number_of_validator_keys = 0
@@ -164,37 +167,38 @@ def launch_participant_network(
             index + 1, len(str(len(args_with_right_defaults.participants)))
         )
         el_context = all_el_contexts[index] if index < len(all_el_contexts) else None
-        
+
         # Debug print for el_proxy_enabled
         plan.print("Checking el_proxy_enabled for participant #{0}:".format(index_str))
-        
+
         # Default to False
         participant_el_proxy_enabled = False
-        
+
         # Try to access attribute directly - NOTE: hasattr() doesn't work correctly on struct objects
         # We need to use dir() and check if the attribute is in the returned list
         participant_attrs = dir(participant)
         if "el_proxy_enabled" in participant_attrs:
             value = participant.el_proxy_enabled
-            plan.print("  - Participant has explicit el_proxy_enabled: {0}".format(value))
+            plan.print(
+                "  - Participant has explicit el_proxy_enabled: {0}".format(value)
+            )
             # Only set to True if explicitly True
             if value == True:
                 participant_el_proxy_enabled = True
-        
-        plan.print("  - Final el_proxy_enabled: {0}".format(participant_el_proxy_enabled))
-        
+
+        plan.print(
+            "  - Final el_proxy_enabled: {0}".format(participant_el_proxy_enabled)
+        )
+
         el_proxy_context = None
-        
+
         if participant_el_proxy_enabled and el_context:
             node_selectors = input_parser.get_client_node_selectors(
                 participant.node_selectors,
                 global_node_selectors,
             )
-            
-            el_proxy_service_name = "el-proxy-{0}-{1}".format(
-                index_str,
-                el_type
-            )
+
+            el_proxy_service_name = "el-proxy-{0}-{1}".format(index_str, el_type)
             el_proxy_context = el_proxy.launch(
                 plan,
                 el_proxy_service_name,
@@ -619,16 +623,16 @@ def launch_participant_network(
             )
 
         el_proxy_context = None
-        
+
         # Default to False
         participant_el_proxy_enabled = False
-        
+
         # Try to access attribute directly
         if hasattr(participant, "el_proxy_enabled"):
             # Only set to True if explicitly True
             if participant.el_proxy_enabled == True:
                 participant_el_proxy_enabled = True
-        
+
         if participant_el_proxy_enabled:
             el_proxy_context = all_el_proxy_contexts[index]
 

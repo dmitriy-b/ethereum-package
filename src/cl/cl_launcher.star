@@ -154,7 +154,9 @@ def launch(
             ]
 
         el_context = all_el_contexts[index]
-        el_proxy_context = all_el_proxy_contexts[index] if index < len(all_el_proxy_contexts) else None
+        el_proxy_context = (
+            all_el_proxy_contexts[index] if index < len(all_el_proxy_contexts) else None
+        )
 
         cl_context = None
         snooper_el_engine_context = None

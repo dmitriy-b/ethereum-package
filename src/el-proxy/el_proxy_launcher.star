@@ -23,6 +23,7 @@ MAX_MEMORY = 600
 # Define default Docker image for the Engine API Proxy
 DEFAULT_EL_PROXY_IMAGE = "nethermindeth/engine-api-proxy:latest"
 
+
 def launch(plan, service_name, el_context, node_selectors, docker_cache_params):
     el_proxy_service_name = "{0}".format(service_name)
 
@@ -46,21 +47,22 @@ def get_config(service_name, el_context, node_selectors, docker_cache_params):
         el_context.ip_addr,
         el_context.engine_rpc_port_num,
     )
-    
+
     # Update command format based on error message requirements
     cmd = [
         EL_PROXY_BINARY_COMMAND,
         "--ec-endpoint={0}".format(ec_endpoint),
         "--port={0}".format(EL_PROXY_PORT_NUM),
-        "--validate-all-blocks",
-        "--log-level=Info"  # Log level
+        "--validation-mode=LH",
+        # "--validate-all-blocks",
+        "--log-level=Info",  # Log level
     ]
 
     # Use either a custom image from cache or default image
     image = shared_utils.docker_cache_image_calc(
         docker_cache_params, DEFAULT_EL_PROXY_IMAGE
     )
-    
+
     return ServiceConfig(
         image=image,
         ports=EL_PROXY_USED_PORTS,
@@ -70,4 +72,4 @@ def get_config(service_name, el_context, node_selectors, docker_cache_params):
         min_memory=MIN_MEMORY,
         max_memory=MAX_MEMORY,
         node_selectors=node_selectors,
-    ) 
+    )
