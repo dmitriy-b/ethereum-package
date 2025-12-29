@@ -219,6 +219,7 @@ def get_beacon_config(
         # Enable this flag once we have https://github.com/sigp/lighthouse/issues/5054 fixed
         # "--allow-insecure-genesis-sync",
         "--enable-private-discovery",
+        "--always-prepare-payload",
     ]
 
     supernode_cmd = [
@@ -412,7 +413,7 @@ def get_blobber_config(
     node_selectors,
 ):
     blobber_config = None
-    if participant.blobber_enabled:
+    if participant.blobber_enabled and node_keystore_files != None:
         blobber_config = struct(
             service_name="{0}-{1}".format("blobber", beacon_service_name),
             beacon_http_url=beacon_http_url,
